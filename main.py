@@ -47,7 +47,6 @@ class BrasileiraoPredictor:
                 # Coletar dados adicionais
                 home_form = self.data.get_recent_form(home_team)
                 away_form = self.data.get_recent_form(away_team)
-                match_history = self.data.get_match_history(home_team, away_team)
                 
                 # Realizar previsão
                 probabilities = self.predictor.predict_match(
@@ -65,27 +64,37 @@ class BrasileiraoPredictor:
                 # Gráficos
                 col3, col4 = st.columns(2)
                 with col3:
+                    # Gráfico de probabilidades
                     prob_chart = self.visualizer.create_probability_chart(
                         home_team, away_team, probabilities)
                     st.plotly_chart(prob_chart, use_container_width=True)
                     
-                    form_chart = self.visualizer.create_form_chart(
-                        [home_form, away_form],
-                        [home_team, away_team]
+                    # Gráfico de forma - usando o novo método
+                    form_chart = self.visualizer.create_form_comparison(
+                        home_form=home_form,
+                        away_form=away_form,
+                        home_team=home_team,
+                        away_team=away_team
                     )
                     st.plotly_chart(form_chart, use_container_width=True)
                 
                 with col4:
-                    history_chart = self.visualizer.create_history_chart(
-                        match_history, home_team, away_team)
-                    st.plotly_chart(history_chart, use_container_width=True)
-                    
-                    comparison_chart = self.visualizer.create_comparison_chart(
-                        home_stats, away_stats, 
-                        'points_per_game', 
+                    # Comparação de métricas
+                    points_chart = self.visualizer.create_comparison_chart(
+                        home_stats,
+                        away_stats,
+                        'points_per_game',
                         'Pontos por Jogo'
                     )
-                    st.plotly_chart(comparison_chart, use_container_width=True)
+                    st.plotly_chart(points_chart, use_container_width=True)
+                    
+                    goals_chart = self.visualizer.create_comparison_chart(
+                        home_stats,
+                        away_stats,
+                        'goals_scored_per_game',
+                        'Média de Gols por Jogo'
+                    )
+                    st.plotly_chart(goals_chart, use_container_width=True)
                 
                 # Análise
                 self.ui.render_analysis(home_team, away_team, home_form, away_form)
