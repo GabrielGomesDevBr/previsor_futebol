@@ -20,7 +20,7 @@ class UI:
             }
             
             .title-container {
-                background: linear-gradient(90deg, #00b09b 0%, #96c93d 100%);
+                background: linear-gradient(90deg, #2E86C1 0%, #3498DB 100%);
                 padding: 2rem;
                 border-radius: 15px;
                 color: white;
@@ -43,7 +43,7 @@ class UI:
             }
             
             .stButton>button {
-                background: linear-gradient(90deg, #00b09b 0%, #96c93d 100%);
+                background: linear-gradient(90deg, #2E86C1 0%, #3498DB 100%);
                 color: white;
                 padding: 0.8rem 2rem;
                 border-radius: 10px;
@@ -53,6 +53,16 @@ class UI:
                 width: 100%;
             }
             
+            .stButton>button:hover {
+                transform: translateY(-2px);
+            }
+            
+            .metric-value {
+                font-size: 2rem;
+                font-weight: bold;
+                color: #2E86C1;
+            }
+            
             .prediction-container {
                 background: white;
                 padding: 2rem;
@@ -60,16 +70,13 @@ class UI:
                 margin-top: 2rem;
                 text-align: center;
             }
-            
-            .metric-value {
-                font-size: 2rem;
-                font-weight: bold;
-                color: #00b09b;
-            }
             </style>
         """, unsafe_allow_html=True)
     
     def render_header(self):
+        """
+        Renderiza o cabeçalho da aplicação
+        """
         st.markdown("""
             <div class="title-container">
                 <h1>⚽ Previsor do Brasileirão</h1>
@@ -78,6 +85,9 @@ class UI:
         """, unsafe_allow_html=True)
     
     def render_team_selector(self, teams: List[str]) -> Tuple[str, str]:
+        """
+        Renderiza os seletores de times
+        """
         col1, col2 = st.columns(2)
         
         with col1:
@@ -93,6 +103,9 @@ class UI:
         return home_team, away_team
     
     def render_team_stats(self, stats: Dict, title: str):
+        """
+        Renderiza estatísticas do time
+        """
         st.markdown(f"""
             <div class="stat-box">
                 <h4>📊 Estatísticas - {title}</h4>
@@ -113,12 +126,17 @@ class UI:
             </div>
         """, unsafe_allow_html=True)
     
-    def render_prediction(self, home_team: str, away_team: str, probabilities: Tuple[float, float, float]):
+    def render_prediction(self, home_team: str, away_team: str, 
+                        probabilities: Tuple[float, float, float]):
+        """
+        Renderiza previsão do jogo
+        """
         prob_home, prob_draw, prob_away = probabilities
         
         st.markdown("""
             <div class="prediction-container">
-                <h2>🎯 Resultado da Previsão</h2>
+                <h2>🎯 Probabilidades</h2>
+            </div>
         """, unsafe_allow_html=True)
         
         cols = st.columns(3)
@@ -130,6 +148,9 @@ class UI:
             self._render_probability(f"Vitória {away_team}", prob_away)
     
     def _render_probability(self, label: str, value: float):
+        """
+        Renderiza uma probabilidade individual
+        """
         st.markdown(f"""
             <div style="text-align: center; padding: 1rem;">
                 <p>{label}</p>
@@ -137,7 +158,11 @@ class UI:
             </div>
         """, unsafe_allow_html=True)
     
-    def render_analysis(self, home_team: str, away_team: str, home_form: Dict, away_form: Dict):
+    def render_analysis(self, home_team: str, away_team: str, 
+                       home_form: Dict, away_form: Dict):
+        """
+        Renderiza análise comparativa
+        """
         st.markdown(f"""
             <div class="stat-box">
                 <h4>📈 Análise da Forma</h4>
