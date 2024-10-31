@@ -141,21 +141,30 @@ class BrasileiraoPredictor:
                     # Detalhes da análise
                     st.markdown(f"""
                         <div style='background: white; padding: 20px; border-radius: 10px; margin-top: 20px;'>
-                            <h3>📊 Fatores Analisados:</h3>
-                            <ul>
-                                {"".join(f"<li>{factor}</li>" for factor in confidence_analysis['home_confidence']['factors'])}
-                            </ul>
+                            <h3 style='color: #2C3E50; margin-bottom: 20px;'>📊 Análise Detalhada do Confronto</h3>
                             
-                            <h3>📈 Análise Detalhada:</h3>
-                            <p><b>Diferença de pontos por jogo:</b> {confidence_analysis['points_diff']:.2f}</p>
-                            <p><b>Diferença na forma:</b> {confidence_analysis['form_diff']*100:.1f}%</p>
-                            <p><b>Diferença nas probabilidades:</b> {confidence_analysis['prob_diff']*100:.1f}%</p>
-                            
-                            <div style='background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;'>
-                                <h4 style='color: #2C3E50;'>🎯 Recomendação Final:</h4>
-                                <p style='font-size: 1.2em; font-weight: bold; color: #2C3E50;'>
+                            <div style='background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
+                                <h4 style='color: #2C3E50;'>🎯 Nível de Confiança:</h4>
+                                <p style='font-size: 1.5em; font-weight: bold; color: #2C3E50; margin: 10px 0;'>
                                     {confidence_analysis['home_confidence']['description']}
                                 </p>
+                            </div>
+                            
+                            <div style='margin-bottom: 20px;'>
+                                <h4 style='color: #27AE60;'>✅ Fatores Favoráveis:</h4>
+                                {"".join(f"<p style='margin: 5px 0;'>• {factor}</p>" for factor in confidence_analysis['home_confidence']['positive_factors']) if confidence_analysis['home_confidence']['positive_factors'] else "<p>Nenhum fator favorável identificado</p>"}
+                            </div>
+                            
+                            <div style='margin-bottom: 20px;'>
+                                <h4 style='color: #E74C3C;'>⚠️ Pontos de Atenção:</h4>
+                                {"".join(f"<p style='margin: 5px 0;'>• {factor}</p>" for factor in confidence_analysis['home_confidence']['negative_factors']) if confidence_analysis['home_confidence']['negative_factors'] else "<p>Nenhum ponto de atenção identificado</p>"}
+                            </div>
+                            
+                            <div style='background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;'>
+                                <h4 style='color: #2C3E50;'>📈 Dados Comparativos:</h4>
+                                <p style='margin: 5px 0;'><b>Diferença de pontos/jogo:</b> {confidence_analysis['points_diff']:.2f}</p>
+                                <p style='margin: 5px 0;'><b>Diferença na forma:</b> {confidence_analysis['form_diff']*100:.1f}%</p>
+                                <p style='margin: 5px 0;'><b>Diferença nas probabilidades:</b> {abs(confidence_analysis['prob_diff']*100):.1f}%</p>
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
