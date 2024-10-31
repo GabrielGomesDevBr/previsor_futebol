@@ -86,7 +86,9 @@ class BrasileiraoPredictor:
                 )
                 
                 # Mostrar resultados em tabs
-                tab1, tab2, tab3 = st.tabs(["📊 Probabilidades", "📈 Análise Detalhada", "🎯 Nível de Confiança"])
+                tab1, tab2, tab3 = st.tabs(["📊 Probabilidades", 
+                                          "📈 Análise Detalhada",
+                                          "🎯 Nível de Confiança"])
                 
                 with tab1:
                     # Mostrar resultados
@@ -132,7 +134,8 @@ class BrasileiraoPredictor:
                     )
                     
                     # Gráfico de confiança
-                    confidence_chart = self.visualizer.create_confidence_chart(confidence_analysis)
+                    confidence_chart = self.visualizer.create_confidence_chart(
+                        confidence_analysis)
                     st.plotly_chart(confidence_chart, use_container_width=True)
                     
                     # Detalhes da análise
