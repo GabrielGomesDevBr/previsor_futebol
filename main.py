@@ -5,19 +5,19 @@ from utils import MatchVisualizer
 from ui import UI
 from config import APP_CONFIG
 
+# Configuração da página deve ser a primeira chamada Streamlit
+st.set_page_config(
+    page_title=APP_CONFIG['title'],
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 class BrasileiraoPredictor:
     def __init__(self):
         self.data = BrasileiraoData()
         self.predictor = MatchPredictor()
         self.visualizer = MatchVisualizer()
         self.ui = UI()
-        
-        # Configuração da página
-        st.set_page_config(
-            page_title=APP_CONFIG['title'],
-            layout="wide",
-            initial_sidebar_state="expanded"
-        )
     
     def run(self):
         # Renderizar cabeçalho
