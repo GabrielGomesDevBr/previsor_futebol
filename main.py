@@ -18,10 +18,37 @@ class BrasileiraoPredictor:
         self.predictor = MatchPredictor()
         self.visualizer = MatchVisualizer()
         self.ui = UI()
+
+    def show_guide(self):
+        """Mostra o guia de uso da aplicação"""
+        st.markdown("""
+            <div style='background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;'>
+                <h2>📖 Como usar o Previsor</h2>
+                <p>1. Selecione os times que irão se enfrentar</p>
+                <p>2. Analise as estatísticas básicas de cada time</p>
+                <p>3. Clique em "Realizar Previsão" para ver a análise completa</p>
+                <p>4. Observe o nível de confiança e os fatores considerados</p>
+                <br>
+                <h3>🎯 Níveis de Confiança:</h3>
+                <p>★★★★★ Alta Confiança: Maioria dos indicadores favoráveis</p>
+                <p>★★★ Média Confiança: Alguns indicadores favoráveis</p>
+                <p>★ Baixa Confiança: Poucos indicadores favoráveis</p>
+            </div>
+        """, unsafe_allow_html=True)
     
     def run(self):
         # Renderizar cabeçalho
         self.ui.render_header()
+        
+        # Adicionar menu na sidebar
+        menu = st.sidebar.selectbox(
+            "Menu",
+            ["Previsão de Jogos", "Como Usar"]
+        )
+        
+        if menu == "Como Usar":
+            self.show_guide()
+            return
         
         # Seleção dos times
         home_team, away_team = self.ui.render_team_selector(self.data.df['Time'].tolist())
@@ -43,7 +70,7 @@ class BrasileiraoPredictor:
         
         # Botão de previsão
         if st.button("🎯 Realizar Previsão", use_container_width=True):
-            with st.spinner("Analisando dados..."):
+            with st.spinner("Analisando dados e calculando probabilidades..."):
                 # Coletar dados adicionais
                 home_form = self.data.get_recent_form(home_team)
                 away_form = self.data.get_recent_form(away_team)
@@ -58,46 +85,87 @@ class BrasileiraoPredictor:
                     away_historical=self.data.team_historical[away_team]
                 )
                 
-                # Mostrar resultados
-                self.ui.render_prediction(home_team, away_team, probabilities)
+                # Mostrar resultados em tabs
+                tab1, tab2, tab3 = st.tabs(["📊 Probabilidades", "📈 Análise Detalhada", "🎯 Nível de Confiança"])
                 
-                # Gráficos
-                col3, col4 = st.columns(2)
-                with col3:
+                with tab1:
+                    # Mostrar resultados
+                    self.ui.render_prediction(home_team, away_team, probabilities)
+                    
                     # Gráfico de probabilidades
                     prob_chart = self.visualizer.create_probability_chart(
                         home_team, away_team, probabilities)
                     st.plotly_chart(prob_chart, use_container_width=True)
+                
+                with tab2:
+                    col3, col4 = st.columns(2)
+                    with col3:
+                        # Gráfico de forma
+                        form_chart = self.visualizer.create_form_comparison(
+                            home_form=home_form,
+                            away_form=away_form,
+                            home_team=home_team,
+                            away_team=away_team
+                        )
+                        st.plotly_chart(form_chart, use_container_width=True)
                     
-                    # Gráfico de forma - usando o novo método
-                    form_chart = self.visualizer.create_form_comparison(
+                    with col4:
+                        # Comparação de métricas
+                        points_chart = self.visualizer.create_comparison_chart(
+                            home_stats,
+                            away_stats,
+                            'points_per_game',
+                            'Pontos por Jogo'
+                        )
+                        st.plotly_chart(points_chart, use_container_width=True)
+                
+                with tab3:
+                    # Análise de confiança
+                    confidence_analysis = self.visualizer.analyze_confidence(
+                        home_team=home_team,
+                        away_team=away_team,
                         home_form=home_form,
                         away_form=away_form,
-                        home_team=home_team,
-                        away_team=away_team
+                        home_stats=home_stats,
+                        away_stats=away_stats,
+                        probabilities=probabilities
                     )
-                    st.plotly_chart(form_chart, use_container_width=True)
-                
-                with col4:
-                    # Comparação de métricas
-                    points_chart = self.visualizer.create_comparison_chart(
-                        home_stats,
-                        away_stats,
-                        'points_per_game',
-                        'Pontos por Jogo'
-                    )
-                    st.plotly_chart(points_chart, use_container_width=True)
                     
-                    goals_chart = self.visualizer.create_comparison_chart(
-                        home_stats,
-                        away_stats,
-                        'goals_scored_per_game',
-                        'Média de Gols por Jogo'
-                    )
-                    st.plotly_chart(goals_chart, use_container_width=True)
+                    # Gráfico de confiança
+                    confidence_chart = self.visualizer.create_confidence_chart(confidence_analysis)
+                    st.plotly_chart(confidence_chart, use_container_width=True)
+                    
+                    # Detalhes da análise
+                    st.markdown(f"""
+                        <div style='background: white; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+                            <h3>📊 Fatores Analisados:</h3>
+                            <ul>
+                                {"".join(f"<li>{factor}</li>" for factor in confidence_analysis['home_confidence']['factors'])}
+                            </ul>
+                            
+                            <h3>📈 Análise Detalhada:</h3>
+                            <p><b>Diferença de pontos por jogo:</b> {confidence_analysis['points_diff']:.2f}</p>
+                            <p><b>Diferença na forma:</b> {confidence_analysis['form_diff']*100:.1f}%</p>
+                            <p><b>Diferença nas probabilidades:</b> {confidence_analysis['prob_diff']*100:.1f}%</p>
+                            
+                            <div style='background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;'>
+                                <h4 style='color: #2C3E50;'>🎯 Recomendação Final:</h4>
+                                <p style='font-size: 1.2em; font-weight: bold; color: #2C3E50;'>
+                                    {confidence_analysis['home_confidence']['description']}
+                                </p>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
                 
-                # Análise
-                self.ui.render_analysis(home_team, away_team, home_form, away_form)
+                # Aviso de responsabilidade
+                st.markdown("""
+                    <div style='background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 20px; text-align: center;'>
+                        <p style='color: #666; font-size: 0.9em;'>
+                            ⚠️ Esta análise é baseada em dados estatísticos e deve ser usada apenas como referência.
+                            O futebol é imprevisível e outros fatores podem influenciar o resultado.
+                        </p>
+                    </div>
+                """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     app = BrasileiraoPredictor()
