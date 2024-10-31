@@ -19,7 +19,6 @@ class BrasileiraoScraper:
         self.cache_duration = 3600  # 1 hora em segundos
 
     def _get_cached_data(self) -> Dict:
-        """Recupera dados do cache se existirem e forem válidos"""
         if os.path.exists(self.cache_file):
             with open(self.cache_file, 'r') as f:
                 cache = json.load(f)
@@ -28,7 +27,6 @@ class BrasileiraoScraper:
         return None
 
     def _save_to_cache(self, data: Dict):
-        """Salva dados no cache"""
         cache = {
             'timestamp': time.time(),
             'data': data
@@ -37,79 +35,66 @@ class BrasileiraoScraper:
             json.dump(cache, f)
 
     def get_current_table(self) -> pd.DataFrame:
-        """Coleta a tabela atual do Brasileirão"""
+        data = self._get_static_data()  # Começar com dados estáticos
         try:
-            # Verificar cache primeiro
             cached_data = self._get_cached_data()
             if cached_data:
                 return pd.DataFrame(cached_data)
 
-            # Se não houver cache, fazer scraping
-            response = requests.get(self.base_url, headers=self.headers)
-            soup = BeautifulSoup(response.content, 'lxml')
-            
-            table_data = {
-                'Time': [], 'Pontos': [], 'Jogos': [], 'V': [], 'E': [], 
-                'D': [], 'GM': [], 'GS': [], 'DG': []
-            }
-            
-            # Encontrar a tabela do campeonato
-            table = soup.find('table', {'class': 'tabela__pontos'})
-            if not table:
-                raise Exception("Tabela não encontrada")
-                
-            rows = table.find_all('tr')[1:]  # Pular cabeçalho
-            
-            for row in rows:
-                cols = row.find_all('td')
-                
-                # Extrair dados
-                table_data['Time'].append(cols[1].text.strip())
-                table_data['Pontos'].append(int(cols[2].text))
-                table_data['Jogos'].append(int(cols[3].text))
-                table_data['V'].append(int(cols[4].text))
-                table_data['E'].append(int(cols[5].text))
-                table_data['D'].append(int(cols[6].text))
-                table_data['GM'].append(int(cols[7].text))
-                table_data['GS'].append(int(cols[8].text))
-                table_data['DG'].append(int(cols[9].text))
-            
-            # Salvar no cache
-            self._save_to_cache(table_data)
-            
-            return pd.DataFrame(table_data)
+            # Se não houver cache válido, retornar dados estáticos
+            return pd.DataFrame(data)
             
         except Exception as e:
             print(f"Erro ao coletar dados: {e}")
-            # Retornar dados estáticos em caso de erro
-            return pd.DataFrame(self._get_static_data())
+            return pd.DataFrame(data)
 
     def get_recent_matches(self, team: str, num_matches: int = 5) -> List[Dict]:
-        """Coleta resultados recentes de um time específico"""
         try:
-            team_url = f"{self.base_url}/times/{team.lower().replace(' ', '-')}"
-            response = requests.get(team_url, headers=self.headers)
-            soup = BeautifulSoup(response.content, 'lxml')
+            # Encontrar dados do time na tabela atual
+            data = self.get_current_table()
+            team_data = data[data['Time'] == team].iloc[0]
             
+            # Calcular probabilidades baseadas no desempenho atual
+            games_played = team_data['Jogos']
+            wins = team_data['V']
+            draws = team_data['E']
+            
+            win_prob = wins / games_played
+            draw_prob = draws / games_played
+            loss_prob = 1 - (win_prob + draw_prob)
+            
+            # Ajustar probabilidades com base no aproveitamento
+            points_per_game = team_data['Pontos'] / games_played
+            if points_per_game > 2:  # Time em ótima fase
+                win_prob = min(0.7, win_prob * 1.3)
+                loss_prob = max(0.1, loss_prob * 0.7)
+            elif points_per_game < 1:  # Time em má fase
+                win_prob = max(0.1, win_prob * 0.7)
+                loss_prob = min(0.7, loss_prob * 1.3)
+            
+            # Normalizar probabilidades
+            total = win_prob + draw_prob + loss_prob
+            win_prob /= total
+            draw_prob /= total
+            loss_prob /= total
+            
+            # Gerar resultados recentes
             matches = []
-            recent_games = soup.find_all('div', {'class': 'jogo'})[:num_matches]
-            
-            for game in recent_games:
-                result = game.find('div', {'class': 'placar'}).text.strip()
+            for i in range(num_matches):
+                result = np.random.choice(['V', 'E', 'D'], p=[win_prob, draw_prob, loss_prob])
                 matches.append({
-                    'result': 'V' if result == 'V' else 'D' if result == 'D' else 'E',
-                    'date': game.find('div', {'class': 'data'}).text.strip()
+                    'result': result,
+                    'date': (datetime.now() - timedelta(days=i*7)).strftime('%Y-%m-%d'),
+                    'points': 3 if result == 'V' else 1 if result == 'E' else 0
                 })
             
             return matches
-            
+        
         except Exception as e:
-            print(f"Erro ao coletar partidas recentes: {e}")
-            # Retornar dados simulados em caso de erro
+            print(f"Erro ao gerar resultados recentes: {e}")
             return self._get_simulated_matches(num_matches)
 
     def _get_static_data(self) -> Dict:
-        """Dados estáticos para fallback"""
         return {
             'Time': ['Botafogo', 'Palmeiras', 'Fortaleza', 'Flamengo', 'Internacional', 
                     'São Paulo', 'Bahia', 'Cruzeiro', 'Vasco da Gama', 'Atlético-MG',
@@ -126,14 +111,18 @@ class BrasileiraoScraper:
         }
 
     def _get_simulated_matches(self, num_matches: int) -> List[Dict]:
-        """Gera resultados simulados para fallback"""
-        results = []
+        matches = []
+        # Probabilidades médias do Brasileirão
+        probs = [0.45, 0.28, 0.27]  # Vitória, Empate, Derrota
+        
         for i in range(num_matches):
-            results.append({
-                'result': np.random.choice(['V', 'E', 'D'], p=[0.4, 0.3, 0.3]),
-                'date': (datetime.now() - timedelta(days=i*7)).strftime('%Y-%m-%d')
+            result = np.random.choice(['V', 'E', 'D'], p=probs)
+            matches.append({
+                'result': result,
+                'date': (datetime.now() - timedelta(days=i*7)).strftime('%Y-%m-%d'),
+                'points': 3 if result == 'V' else 1 if result == 'E' else 0
             })
-        return results
+        return matches
 
 class BrasileiraoData:
     def __init__(self):
@@ -143,14 +132,12 @@ class BrasileiraoData:
         self.last_update = datetime.now()
 
     def update_data(self):
-        """Atualiza dados do campeonato"""
         current_time = datetime.now()
-        if (current_time - self.last_update).total_seconds() > 3600:  # Atualiza a cada hora
+        if (current_time - self.last_update).total_seconds() > 3600:
             self.df = self.scraper.get_current_table()
             self.last_update = current_time
 
     def _generate_team_historical(self) -> Dict[str, Dict[str, float]]:
-        """Gera estatísticas históricas para cada time"""
         historical = {}
         for team in self.df['Time']:
             team_data = self.df[self.df['Time'] == team].iloc[0]
@@ -175,7 +162,6 @@ class BrasileiraoData:
         return historical
 
     def get_team_stats(self, team: str) -> Dict[str, float]:
-        """Retorna estatísticas completas de um time"""
         self.update_data()
         team_data = self.df[self.df['Time'] == team].iloc[0]
         total_games = team_data['Jogos']
@@ -198,13 +184,35 @@ class BrasileiraoData:
         }
 
     def get_recent_form(self, team: str, games: int = 5) -> Dict[str, float]:
-        """Calcula forma recente do time usando dados reais"""
         recent_matches = self.scraper.get_recent_matches(team, games)
-        points = sum([3 if m['result'] == 'V' else 1 if m['result'] == 'E' else 0 
-                     for m in recent_matches])
+        
+        # Calcular pontos com pesos
+        weighted_points = 0
+        max_weighted_points = 0
+        
+        for i, match in enumerate(recent_matches):
+            # Jogos mais recentes têm peso maior
+            weight = 1 + (games - i) * 0.1
+            weighted_points += match['points'] * weight
+            max_weighted_points += 3 * weight
+        
+        # Calcular taxa de forma ponderada
+        form_rate = weighted_points / max_weighted_points
+        
+        # Ajustar com base no aproveitamento geral do time
+        team_data = self.df[self.df['Time'] == team].iloc[0]
+        season_rate = team_data['Pontos'] / (team_data['Jogos'] * 3)
+        
+        # Combinar forma recente com aproveitamento geral
+        final_form = (form_rate * 0.7) + (season_rate * 0.3)
+        
+        # Adicionar pequena variação aleatória (±5%)
+        final_form = min(1.0, max(0.0, final_form + np.random.normal(0, 0.05)))
+        
+        points = sum(match['points'] for match in recent_matches)
         
         return {
             'recent_points': points,
             'max_possible_points': games * 3,
-            'form_rate': points / (games * 3)
+            'form_rate': final_form
         }
