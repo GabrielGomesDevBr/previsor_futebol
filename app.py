@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -30,7 +31,7 @@ st.markdown("""
     }
     
     .title-container {
-        background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(90deg, #00b09b 0%, #96c93d 100%);
         padding: 2rem;
         border-radius: 15px;
         color: white;
@@ -89,7 +90,7 @@ st.markdown("""
     }
     
     .sidebar .sidebar-content {
-        background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(180deg, #00b09b 0%, #96c93d 100%);
     }
     
     .plot-container {
@@ -121,7 +122,7 @@ data = {
 # Criar DataFrame
 df = pd.DataFrame(data)
 
-# Funções auxiliares
+# Função melhorada para calcular métricas
 def calcular_metricas(time):
     dados_time = df[df['Time'] == time].iloc[0]
     total_jogos = dados_time['Jogos']
@@ -137,55 +138,62 @@ def calcular_metricas(time):
         'derrotas_perc': derrotas_perc,
         'gols_por_jogo': gols_por_jogo,
         'gols_sofridos_por_jogo': gols_sofridos_por_jogo,
-        'aproveitamento': aproveitamento
+        'aproveitamento': aproveitamento,
+        'pontos': dados_time['Pontos'],
+        'saldo_gols': dados_time['DG']
     }
 
+# Função melhorada para criar o modelo
 def criar_modelo():
     features = ['Pontos', 'V', 'E', 'D', 'GM', 'GS', 'DG']
     X = df[features].values
     
-    # Normalizar os dados
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     
     # Criar labels baseados na posição na tabela
     y = pd.qcut(df['Pontos'], q=3, labels=['Inferior', 'Médio', 'Superior'])
     
-    # Treinar o modelo
     modelo = RandomForestClassifier(n_estimators=100, random_state=42)
     modelo.fit(X_scaled, y)
     
     return modelo, scaler
 
-def calcular_probabilidades(time_casa, time_fora, modelo, scaler, df):
-    # Obter dados dos times
-    features = ['Pontos', 'V', 'E', 'D', 'GM', 'GS', 'DG']
-    dados_casa = df[df['Time'] == time_casa][features].values
-    dados_fora = df[df['Time'] == time_fora][features].values
-    
-    # Normalizar dados
-    dados_casa_scaled = scaler.transform(dados_casa)
-    dados_fora_scaled = scaler.transform(dados_fora)
-    
-    # Obter probabilidades do modelo
-    prob_casa = modelo.predict_proba(dados_casa_scaled)[0]
-    prob_fora = modelo.predict_proba(dados_fora_scaled)[0]
-    
-    # Calcular métricas adicionais
+# Função corrigida para calcular probabilidades
+def calcular_probabilidades(time_casa, time_fora):
     metricas_casa = calcular_metricas(time_casa)
     metricas_fora = calcular_metricas(time_fora)
     
     # Fator casa
     fator_casa = 1.2
     
-    # Calcular probabilidades finais
-    vitoria_casa = (prob_casa[2] * metricas_casa['aproveitamento'] / 100 * fator_casa) * 100
-    vitoria_fora = (prob_fora[2] * metricas_fora['aproveitamento'] / 100 / fator_casa) * 100
-    empate = (1 - (vitoria_casa/100 + vitoria_fora/100)) * 100
+    # Base de cálculo usando aproveitamento
+    base_casa = metricas_casa['aproveitamento'] / 100
+    base_fora = metricas_fora['aproveitamento'] / 100
     
-    return vitoria_casa, empate, vitoria_fora
-
-# Título principal
+    # Ajuste pelo saldo de gols
+    ajuste_saldo = (metricas_casa['saldo_gols'] - metricas_fora['saldo_gols']) / 100
+    
+    # Cálculo das probabilidades base
+    prob_base_casa = base_casa * fator_casa
+    prob_base_fora = base_fora
+    
+    # Ajuste final
+    prob_casa = min(max((prob_base_casa + ajuste_saldo) * 100, 15), 75)
+    prob_fora = min(max((prob_base_fora - ajuste_saldo) * 100, 15), 75)
+    
+    # Garantir que a soma não ultrapasse 100%
+    total = prob_casa + prob_fora
+    if total > 100:
+        fator = 100 / total
+        prob_casa *= fator
+        prob_fora *= fator
+    
+    # Calcular empate
+    prob_empate = 100 - (prob_casa + prob_fora)
+    
+    return prob_casa, prob_empate, prob_fora
+# Título principal com novo design
 st.markdown("""
     <div class="title-container">
         <h1>⚽ Previsor de Jogos do Brasileirão</h1>
@@ -210,8 +218,9 @@ with col1:
         <div class="stat-box">
             <h4>📊 Estatísticas</h4>
             <p>Aproveitamento: {metricas_casa['aproveitamento']:.2f}%</p>
+            <p>Vitórias: {metricas_casa['vitorias_perc']:.2f}%</p>
             <p>Gols por jogo: {metricas_casa['gols_por_jogo']:.2f}</p>
-            <p>Gols sofridos por jogo: {metricas_casa['gols_sofridos_por_jogo']:.2f}</p>
+            <p>Saldo de Gols: {metricas_casa['saldo_gols']}</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -229,20 +238,16 @@ with col2:
         <div class="stat-box">
             <h4>📊 Estatísticas</h4>
             <p>Aproveitamento: {metricas_fora['aproveitamento']:.2f}%</p>
+            <p>Vitórias: {metricas_fora['vitorias_perc']:.2f}%</p>
             <p>Gols por jogo: {metricas_fora['gols_por_jogo']:.2f}</p>
-            <p>Gols sofridos por jogo: {metricas_fora['gols_sofridos_por_jogo']:.2f}</p>
+            <p>Saldo de Gols: {metricas_fora['saldo_gols']}</p>
         </div>
     """, unsafe_allow_html=True)
 
 # Botão de previsão
 if st.button('🎯 Realizar Previsão'):
-    # Criar e treinar o modelo
-    modelo, scaler = criar_modelo()
-    
-    # Calcular probabilidades
-    prob_casa, prob_empate, prob_fora = calcular_probabilidades(
-        time_casa, time_fora, modelo, scaler, df
-    )
+    # Calcular probabilidades com o novo método
+    prob_casa, prob_empate, prob_fora = calcular_probabilidades(time_casa, time_fora)
     
     # Container de resultado
     st.markdown("""
@@ -254,11 +259,11 @@ if st.button('🎯 Realizar Previsão'):
     # Gráfico de probabilidades
     fig = go.Figure()
     
-    # Adicionar barras
+    # Adicionar barras com as novas cores
     fig.add_trace(go.Bar(
         x=['Vitória Casa', 'Empate', 'Vitória Fora'],
         y=[prob_casa, prob_empate, prob_fora],
-        marker_color=['#00b09b', '#1e3c72', '#96c93d'],
+        marker_color=['#00b09b', '#96c93d', '#00b09b'],
         text=[f'{v:.2f}%' for v in [prob_casa, prob_empate, prob_fora]],
         textposition='auto',
     ))
@@ -276,45 +281,55 @@ if st.button('🎯 Realizar Previsão'):
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         showlegend=False,
-        height=500
+        height=400
     )
     
     # Adicionar elementos visuais
     fig.update_traces(
-        marker_line_color='rgb(8,48,107)',
+        marker_line_color='white',
         marker_line_width=1.5,
         opacity=0.8
     )
     
     st.plotly_chart(fig, use_container_width=True)
     
-    # Mostrar resultado mais provável
+    # Mostrar resultado mais provável com design melhorado
     resultado_provavel = "Vitória do " + time_casa if prob_casa > max(prob_empate, prob_fora) else \
                         "Empate" if prob_empate > max(prob_casa, prob_fora) else \
                         "Vitória do " + time_fora
     
     st.markdown(f"""
         <div class="prediction-value">
-            Resultado mais provável: {resultado_provavel}
-            <p class="prediction-detail">
-                Vitória {time_casa}: {prob_casa:.2f}%<br>
-                Empate: {prob_empate:.2f}%<br>
-                Vitória {time_fora}: {prob_fora:.2f}%
-            </p>
+            <h3 style='color: #00b09b; margin-bottom: 1rem;'>Resultado mais provável:</h3>
+            <p style='font-size: 2.5rem; color: #2a5298;'>{resultado_provavel}</p>
+            <div style='display: flex; justify-content: space-around; margin-top: 1rem;'>
+                <div>
+                    <p style='color: #00b09b; font-weight: bold;'>Vitória {time_casa}</p>
+                    <p style='font-size: 1.2rem;'>{prob_casa:.2f}%</p>
+                </div>
+                <div>
+                    <p style='color: #96c93d; font-weight: bold;'>Empate</p>
+                    <p style='font-size: 1.2rem;'>{prob_empate:.2f}%</p>
+                </div>
+                <div>
+                    <p style='color: #00b09b; font-weight: bold;'>Vitória {time_fora}</p>
+                    <p style='font-size: 1.2rem;'>{prob_fora:.2f}%</p>
+                </div>
+            </div>
         </div>
     """, unsafe_allow_html=True)
     
-    # Adicionar análise complementar
+    # Análise complementar
     st.markdown("""
-        <div class="stat-box">
-            <h4>📈 Análise Detalhada</h4>
+        <div class="stat-box" style='margin-top: 2rem;'>
+            <h4 style='color: #2a5298;'>📈 Análise Comparativa</h4>
+        </div>
     """, unsafe_allow_html=True)
     
-    # Comparativo de estatísticas
+    # Gráficos comparativos
     col3, col4 = st.columns(2)
     
     with col3:
-        # Gráfico de aproveitamento
         fig_aprov = go.Figure()
         fig_aprov.add_trace(go.Bar(
             x=[time_casa, time_fora],
@@ -332,7 +347,6 @@ if st.button('🎯 Realizar Previsão'):
         st.plotly_chart(fig_aprov, use_container_width=True)
 
     with col4:
-        # Gráfico de gols
         fig_gols = go.Figure()
         fig_gols.add_trace(go.Bar(
             x=[time_casa, time_fora],
@@ -351,11 +365,12 @@ if st.button('🎯 Realizar Previsão'):
         st.plotly_chart(fig_gols, use_container_width=True)
 
 # Rodapé com informações adicionais
-st.markdown("""
+st.markdown(f"""
     <div style='margin-top: 50px; text-align: center; color: #666;'>
         <p>As previsões são baseadas em um modelo avançado de Machine Learning que considera múltiplas variáveis.</p>
-        <p>Dados atualizados em: {}</p>
+        <p>Dados atualizados em: {datetime.now().strftime('%d/%m/%Y')}</p>
         <p style='font-size: 0.8em;'>Este é um modelo preditivo e os resultados são probabilísticos. 
            Use estas informações apenas como referência.</p>
     </div>
-""".format(datetime.now().strftime('%d/%m/%Y')), unsafe_allow_html=True)
+""", unsafe_allow_html=True)
+
