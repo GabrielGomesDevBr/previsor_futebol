@@ -11,7 +11,7 @@ MODEL_CONFIG = {
     'DEFAULT_DRAW_RATE': 0.28,
 }
 
-# Nova paleta de cores para análise estatística
+# Configurações de Visualização
 VIS_CONFIG = {
     'COLORS': {
         'win': '#2E86C1',      # Azul forte para vitórias
@@ -27,11 +27,12 @@ VIS_CONFIG = {
     'CHART_WIDTH': 800
 }
 
-# Métricas de Avaliação
-EVALUATION_METRICS = {
-    'accuracy_threshold': 0.65,
-    'confidence_threshold': 0.75,
-    'min_samples': 10
+# Configurações da Aplicação
+APP_CONFIG = {
+    'title': "Previsor do Brasileirão",
+    'version': '2.0.0',
+    'last_update': datetime.now().strftime('%Y-%m-%d'),
+    'debug': False
 }
 
 # Constantes Estatísticas
@@ -44,12 +45,4 @@ STATISTICS = {
     'goals_importance': 0.35,
     'defense_importance': 0.30,
     'form_importance': 0.35
-}
-
-# Configurações da Aplicação
-APP_CONFIG = {
-    'title': "Previsor do Brasileirão",
-    'version': '2.0.0',
-    'last_update': datetime.now().strftime('%Y-%m-%d'),
-    'debug': False
 }
