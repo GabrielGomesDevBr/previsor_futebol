@@ -5,3 +5,5 @@ scikit-learn==1.4.0
 plotly==5.18.0
 matplotlib==3.8.2
 seaborn==0.13.1
+requests==2.31.0
+beautifulsoup4==4.12.2
