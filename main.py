@@ -138,46 +138,57 @@ class BrasileiraoPredictor:
                         confidence_analysis)
                     st.plotly_chart(confidence_chart, use_container_width=True)
                     
-                    # Detalhes da análise
-                    st.markdown(f"""
-                        <div style='background: white; padding: 20px; border-radius: 10px; margin-top: 20px;'>
-                            <h3 style='color: #2C3E50; margin-bottom: 20px;'>📊 Análise Detalhada do Confronto</h3>
-                            
-                            <div style='background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
-                                <h4 style='color: #2C3E50;'>🎯 Nível de Confiança:</h4>
-                                <p style='font-size: 1.5em; font-weight: bold; color: #2C3E50; margin: 10px 0;'>
-                                    {confidence_analysis['home_confidence']['description']}
-                                </p>
-                            </div>
-                            
-                            <div style='margin-bottom: 20px;'>
-                                <h4 style='color: #27AE60;'>✅ Fatores Favoráveis:</h4>
-                                {"".join(f"<p style='margin: 5px 0;'>• {factor}</p>" for factor in confidence_analysis['home_confidence']['positive_factors']) if confidence_analysis['home_confidence']['positive_factors'] else "<p>Nenhum fator favorável identificado</p>"}
-                            </div>
-                            
-                            <div style='margin-bottom: 20px;'>
-                                <h4 style='color: #E74C3C;'>⚠️ Pontos de Atenção:</h4>
-                                {"".join(f"<p style='margin: 5px 0;'>• {factor}</p>" for factor in confidence_analysis['home_confidence']['negative_factors']) if confidence_analysis['home_confidence']['negative_factors'] else "<p>Nenhum ponto de atenção identificado</p>"}
-                            </div>
-                            
-                            <div style='background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;'>
-                                <h4 style='color: #2C3E50;'>📈 Dados Comparativos:</h4>
-                                <p style='margin: 5px 0;'><b>Diferença de pontos/jogo:</b> {confidence_analysis['points_diff']:.2f}</p>
-                                <p style='margin: 5px 0;'><b>Diferença na forma:</b> {confidence_analysis['form_diff']*100:.1f}%</p>
-                                <p style='margin: 5px 0;'><b>Diferença nas probabilidades:</b> {abs(confidence_analysis['prob_diff']*100):.1f}%</p>
-                            </div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                
-                # Aviso de responsabilidade
-                st.markdown("""
-                    <div style='background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 20px; text-align: center;'>
-                        <p style='color: #666; font-size: 0.9em;'>
-                            ⚠️ Esta análise é baseada em dados estatísticos e deve ser usada apenas como referência.
-                            O futebol é imprevisível e outros fatores podem influenciar o resultado.
-                        </p>
-                    </div>
-                """, unsafe_allow_html=True)
+                    # Detalhes da análise usando componentes nativos do Streamlit
+                    st.header("📊 Análise Detalhada do Confronto")
+                    
+                    # Nível de Confiança
+                    st.subheader("🎯 Nível de Confiança")
+                    st.info(confidence_analysis['home_confidence']['description'])
+                    
+                    # Fatores Favoráveis
+                    st.subheader("✅ Fatores Favoráveis")
+                    if confidence_analysis['home_confidence']['positive_factors']:
+                        for factor in confidence_analysis['home_confidence']['positive_factors']:
+                            st.success(f"• {factor}")
+                    else:
+                        st.warning("Nenhum fator favorável identificado")
+                    
+                    # Pontos de Atenção
+                    st.subheader("⚠️ Pontos de Atenção")
+                    if confidence_analysis['home_confidence']['negative_factors']:
+                        for factor in confidence_analysis['home_confidence']['negative_factors']:
+                            st.error(f"• {factor}")
+                    else:
+                        st.success("Nenhum ponto de atenção identificado")
+                    
+                    # Dados Comparativos
+                    st.subheader("📈 Dados Comparativos")
+                    col_metrics1, col_metrics2, col_metrics3 = st.columns(3)
+                    
+                    with col_metrics1:
+                        st.metric(
+                            label="Diferença de pontos/jogo",
+                            value=f"{confidence_analysis['points_diff']:.2f}"
+                        )
+                    
+                    with col_metrics2:
+                        st.metric(
+                            label="Diferença na forma",
+                            value=f"{confidence_analysis['form_diff']*100:.1f}%"
+                        )
+                    
+                    with col_metrics3:
+                        st.metric(
+                            label="Diferença nas probabilidades",
+                            value=f"{abs(confidence_analysis['prob_diff']*100):.1f}%"
+                        )
+                    
+                    # Aviso de responsabilidade
+                    st.divider()
+                    st.caption(
+                        "⚠️ Esta análise é baseada em dados estatísticos e deve ser usada apenas como referência. "
+                        "O futebol é imprevisível e outros fatores podem influenciar o resultado."
+                    )
 
 if __name__ == "__main__":
     app = BrasileiraoPredictor()
