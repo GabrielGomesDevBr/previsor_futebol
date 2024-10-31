@@ -139,49 +139,50 @@ class MatchVisualizer:
         home_confidence = {
             'rating': 0,
             'factors': [],
+            'positive_factors': [],
+            'negative_factors': [],
             'description': ''
         }
         
-        # Critérios de alta confiança
-        high_confidence_factors = []
+        # Análise de fatores positivos
         if home_form['form_rate'] > 0.66:
-            high_confidence_factors.append("Time em boa forma")
+            home_confidence['positive_factors'].append("Time mandante em ótima fase (forma > 66%)")
+        elif home_form['form_rate'] > 0.45:
+            home_confidence['positive_factors'].append("Time mandante em fase regular (forma > 45%)")
+            
         if points_diff > 0.5:
-            high_confidence_factors.append("Vantagem significativa em pontos")
+            home_confidence['positive_factors'].append(f"Superioridade em pontos (+{points_diff:.2f} pontos/jogo)")
+        elif points_diff > 0.2:
+            home_confidence['positive_factors'].append(f"Leve vantagem em pontos (+{points_diff:.2f} pontos/jogo)")
+            
         if prob_home > 0.60:
-            high_confidence_factors.append("Alta probabilidade de vitória")
-        
-        # Critérios de média confiança
-        medium_confidence_factors = []
-        if 0.33 <= home_form['form_rate'] <= 0.66:
-            medium_confidence_factors.append("Time em forma regular")
-        if -0.5 <= points_diff <= 0.5:
-            medium_confidence_factors.append("Times equilibrados em pontos")
-        if 0.45 <= prob_home <= 0.60:
-            medium_confidence_factors.append("Probabilidade moderada")
-        
-        # Critérios de baixa confiança
-        low_confidence_factors = []
+            home_confidence['positive_factors'].append(f"Alta probabilidade de vitória ({prob_home*100:.1f}%)")
+        elif prob_home > 0.45:
+            home_confidence['positive_factors'].append(f"Probabilidade moderada de vitória ({prob_home*100:.1f}%)")
+            
+        # Análise de fatores negativos
         if home_form['form_rate'] < 0.33:
-            low_confidence_factors.append("Time em má forma")
+            home_confidence['negative_factors'].append(f"Time mandante em má fase (forma: {home_form['form_rate']*100:.1f}%)")
+        
+        if points_diff < -0.2:
+            home_confidence['negative_factors'].append(f"Inferioridade em pontos ({points_diff:.2f} pontos/jogo)")
+            
         if prob_home < 0.45:
-            low_confidence_factors.append("Baixa probabilidade")
+            home_confidence['negative_factors'].append(f"Baixa probabilidade de vitória ({prob_home*100:.1f}%)")
+            
         if abs(prob_home - prob_away) < 0.1:
-            low_confidence_factors.append("Probabilidades muito equilibradas")
+            home_confidence['negative_factors'].append(f"Jogo muito equilibrado (diferença de apenas {abs(prob_home - prob_away)*100:.1f}%)")
         
         # Determinar classificação
-        if len(high_confidence_factors) >= 2:
+        if len(home_confidence['positive_factors']) >= 2 and len(home_confidence['negative_factors']) == 0:
             home_confidence['rating'] = 5
             home_confidence['description'] = "Alta confiança ★★★★★"
-            home_confidence['factors'] = high_confidence_factors
-        elif len(medium_confidence_factors) >= 2:
+        elif len(home_confidence['positive_factors']) >= 1 and len(home_confidence['negative_factors']) <= 1:
             home_confidence['rating'] = 3
             home_confidence['description'] = "Média confiança ★★★"
-            home_confidence['factors'] = medium_confidence_factors
         else:
             home_confidence['rating'] = 1
             home_confidence['description'] = "Baixa confiança ★"
-            home_confidence['factors'] = low_confidence_factors
         
         return {
             'home_confidence': home_confidence,
