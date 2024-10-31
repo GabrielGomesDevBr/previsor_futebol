@@ -2,23 +2,26 @@ from datetime import datetime
 
 # Configurações do Modelo
 MODEL_CONFIG = {
-    'HISTORIC_WEIGHT': 0.3,        # Peso para dados históricos
-    'RECENT_FORM_WEIGHT': 0.3,     # Peso para forma recente
-    'CURRENT_STATS_WEIGHT': 0.4,   # Peso para estatísticas atuais
-    'HOME_ADVANTAGE_FACTOR': 1.15,  # Fator médio de vantagem em casa
-    'MIN_PROBABILITY': 0.10,       # Probabilidade mínima para qualquer resultado
-    'MAX_PROBABILITY': 0.70,       # Probabilidade máxima para qualquer resultado
-    'DEFAULT_DRAW_RATE': 0.28,     # Taxa média histórica de empates no Brasileirão
+    'HISTORIC_WEIGHT': 0.3,
+    'RECENT_FORM_WEIGHT': 0.3,
+    'CURRENT_STATS_WEIGHT': 0.4,
+    'HOME_ADVANTAGE_FACTOR': 1.15,
+    'MIN_PROBABILITY': 0.10,
+    'MAX_PROBABILITY': 0.70,
+    'DEFAULT_DRAW_RATE': 0.28,
 }
 
-# Configurações de Visualização
+# Nova paleta de cores para análise estatística
 VIS_CONFIG = {
     'COLORS': {
-        'primary': '#00b09b',
-        'secondary': '#96c93d',
-        'tertiary': '#2a5298',
-        'background': '#ffffff',
-        'text': '#333333'
+        'win': '#2E86C1',      # Azul forte para vitórias
+        'draw': '#717D7E',     # Cinza para empates
+        'loss': '#E74C3C',     # Vermelho para derrotas
+        'primary': '#3498DB',  # Azul principal
+        'secondary': '#95A5A6', # Cinza secundário
+        'accent': '#2ECC71',   # Verde para destaque
+        'background': '#F8F9F9',
+        'text': '#2C3E50'
     },
     'CHART_HEIGHT': 400,
     'CHART_WIDTH': 800
